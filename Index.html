@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truco Clássico</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Merriweather:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="main-menu">
+        <div class="menu-content">
+            <h1 class="game-title">TRUCO</h1>
+            <div class="difficulty-selector">
+                <h2>Nível de Dificuldade</h2>
+                <button class="difficulty-btn active" data-difficulty="easy">Fácil</button>
+                <button class="difficulty-btn" data-difficulty="medium">Médio</button>
+                <button class="difficulty-btn" data-difficulty="hard">Difícil</button>
+            </div>
+            <button id="start-game-btn">Iniciar Jogo</button>
+        </div>
+    </div>
+
+    <div id="table-top" class="hidden">
+        <div id="partner-area" class="player-area horizontal">
+            <div class="player-info">Parceiro</div>
+            <div id="partner-hand" class="hand"></div>
+        </div>
+
+        <div id="opponent1-area" class="player-area vertical">
+            <div class="player-info">Oponente 1</div>
+            <div id="opponent1-hand" class="hand"></div>
+        </div>
+
+        <div id="center-area">
+            <div id="info-area">
+                <div id="placar">Nós <span id="team1-score">0</span> x <span id="team2-score">0</span> Eles</div>
+            </div>
+            <div id="table">
+                <div id="card-spot-partner" class="card-placeholder"></div>
+                <div id="card-spot-opponent1" class="card-placeholder"></div>
+                <div id="card-spot-opponent2" class="card-placeholder"></div>
+                <div id="card-spot-player" class="card-placeholder"></div>
+            </div>
+            <div id="message-box">Bem-vindo ao Truco!</div>
+        </div>
+
+        <div id="opponent2-area" class="player-area vertical">
+            <div class="player-info">Oponente 2</div>
+            <div id="opponent2-hand" class="hand"></div>
+        </div>
+
+        <div id="player-area" class="player-area horizontal">
+            <div id="player-hand" class="hand"></div>
+            <div class="player-info">Você</div>
+        </div>
+
+        <div id="actions">
+            <button id="deal-button">Nova Mão</button>
+            <button id="truco-button" disabled>TRUCO!</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
