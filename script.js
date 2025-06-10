@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let trucoPedido = false;
     let trucoNivel = 0; // 0 = normal, 1 = truco (3pts), 2 = seis (6pts), 3 = nove (9pts), 4 = doze (12pts)
     let timeQuePediuTruco = null;
+    let modoCartaVirada = false; // Nova variável para controlar o modo de jogo da carta
     
     // Estado da Rodada
     let rodadaAtual = 1;
@@ -82,7 +83,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 "Quero ver se você aguenta!",
                 "Vamos aumentar a aposta!"
             ]
-        }
+        },
+        cartaVirada: [
+            "Vou jogar essa fechada para confundir...",
+            "Não vou mostrar o que tenho na mão",
+            "Uma carta virada pode enganar o adversário",
+            "Melhor não revelar meu jogo agora"
+        ]
     };
 
     // --- FUNÇÕES DE SETUP E RENDERIZAÇÃO ---
@@ -112,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderizarCarta(carta, facedown = false) {
         if (!carta) return '';
-        if (facedown) return '<div class="card facedown"></div>';
+        if (facedown || carta.virada) return '<div class="card facedown"></div>';
         const cor = (carta.naipe === '♦️' || carta.naipe === '♥️') ? 'red' : 'black';
         const classeManilha = carta.manilha ? ' manilha' : '';
         return `<div class="card ${cor}${classeManilha}" data-valor="${carta.valor}" data-naipe="${carta.naipe}">
@@ -126,10 +133,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const area = playerAreas[i];
             area.handEl.innerHTML = jogador.mao.map(c => renderizarCarta(c, i !== 0)).join('');
             const cartaNaMesa = cartasNaMesa.find(jc => jc.jogadorIndex === i);
-            area.tableEl.innerHTML = renderizarCarta(cartaNaMesa?.carta);
+            area.tableEl.innerHTML = cartaNaMesa ? renderizarCarta(cartaNaMesa.carta, false) : '';
         });
         adicionarListenersCartasJogador();
         trucoButton.textContent = `${TRUCO_NOMES[trucoNivel]}!`;
+        
+        // Atualiza o botão de carta virada
+        const cartaViradaBtn = document.getElementById('carta-virada-btn');
+        if (cartaViradaBtn) {
+            cartaViradaBtn.textContent = modoCartaVirada ? "Modo: Carta Virada" : "Modo: Carta Normal";
+            cartaViradaBtn.classList.toggle('active', modoCartaVirada);
+        }
     }
     
     // --- LÓGICA DO MENU ---
@@ -148,6 +162,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         dealButton.addEventListener('click', iniciarNovaMao);
         trucoButton.addEventListener('click', pedirTruco);
+        
+        // Adiciona botão para jogar carta virada
+        const actionsEl = document.getElementById('actions');
+        const cartaViradaBtn = document.createElement('button');
+        cartaViradaBtn.id = 'carta-virada-btn';
+        cartaViradaBtn.textContent = "Modo: Carta Normal";
+        cartaViradaBtn.addEventListener('click', toggleModoCartaVirada);
+        actionsEl.appendChild(cartaViradaBtn);
+    }
+    
+    function toggleModoCartaVirada() {
+        if (jogadorDaVezIndex === 0 && !lockBoard) {
+            modoCartaVirada = !modoCartaVirada;
+            renderizarTudo();
+            atualizarMensagem(modoCartaVirada ? 
+                "Modo carta virada: a próxima carta será jogada fechada." : 
+                "Modo carta normal: a próxima carta será jogada aberta.");
+        }
     }
 
     function pedirTruco() {
@@ -318,6 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
         valorDaMao = 1;
         trucoNivel = 0;
         trucoPedido = false;
+        modoCartaVirada = false;
         rodadaAtual = 1;
         placarRodada = { team1: 0, team2: 0 };
         cartasNaMesa = [];
@@ -386,6 +419,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const valor = cardEl.dataset.valor;
                 const naipe = cardEl.dataset.naipe;
                 const cartaJogada = jogadores[0].mao.find(c => c.valor === valor && c.naipe === naipe);
+                
+                // Marca a carta como virada se o modo estiver ativado
+                if (modoCartaVirada) {
+                    cartaJogada.virada = true;
+                    // Desativa o modo após jogar uma carta virada
+                    modoCartaVirada = false;
+                }
+                
                 jogarCarta(jogadores[0], cartaJogada);
             });
         });
@@ -428,7 +469,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function cpuJoga(cpu) {
         // Mostra o "pensamento" do CPU
         const dificuldade = gameSettings.difficulty;
-        const pensamentos = PENSAMENTOS_BOT[dificuldade];
+        let pensamentos = PENSAMENTOS_BOT[dificuldade];
+        
+        // Decide se vai jogar carta virada
+        let jogaCartaVirada = false;
+        if (Math.random() < 0.2 && gameSettings.difficulty !== 'easy') { // 20% de chance em médio e difícil
+            jogaCartaVirada = true;
+            pensamentos = PENSAMENTOS_BOT.cartaVirada;
+        }
+        
         const pensamento = pensamentos[Math.floor(Math.random() * pensamentos.length)];
         mostrarPensamentoCPU(pensamento);
         
@@ -437,9 +486,12 @@ document.addEventListener('DOMContentLoaded', () => {
         cpu.mao.sort((a, b) => a.forca - b.forca);
         
         const cartasNaRodada = cartasNaMesa.slice(-(cartasNaMesa.length % 4));
-        const maiorForcaNaMesa = Math.max(0, ...cartasNaRodada.map(c => c.carta.forca));
-        const maiorCartaInfo = cartasNaRodada.length > 0 ? 
-            cartasNaRodada.reduce((maior, atual) => atual.carta.forca > maior.carta.forca ? atual : maior) : 
+        // Filtra apenas cartas visíveis para considerar a maior força
+        const cartasVisiveis = cartasNaRodada.filter(c => !c.carta.virada);
+        const maiorForcaNaMesa = cartasVisiveis.length > 0 ? 
+            Math.max(...cartasVisiveis.map(c => c.carta.forca)) : 0;
+        const maiorCartaInfo = cartasVisiveis.length > 0 ? 
+            cartasVisiveis.reduce((maior, atual) => atual.carta.forca > maior.carta.forca ? atual : maior) : 
             null;
         
         switch (dificuldade) {
@@ -549,6 +601,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
         }
         
+        // Aplica a decisão de jogar carta virada
+        if (jogaCartaVirada) {
+            cartaJogada.virada = true;
+        }
+        
         jogarCarta(cpu, cartaJogada);
     }
     
@@ -563,20 +620,32 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function concluirRodada() {
         const rodadaAtualCartas = cartasNaMesa.slice(-4);
-        let maiorCartaInfo = rodadaAtualCartas.reduce((maior, atual) => atual.carta.forca > maior.carta.forca ? atual : maior);
-        let timeVencedor = maiorCartaInfo.time;
-        const empatou = rodadaAtualCartas.some(c => c.time !== timeVencedor && c.carta.forca === maiorCartaInfo.carta.forca);
         
-        if (empatou) {
-            placarRodada[`team1`]++; placarRodada[`team2`]++;
-            atualizarMensagem(`Rodada ${rodadaAtual} empatou!`);
-            primeiroAJogarNaRodada = primeiroAJogarNaRodada;
-        } else {
-            placarRodada[`team${timeVencedor}`]++;
-            atualizarMensagem(`Time ${timeVencedor} venceu a rodada ${rodadaAtual}!`);
-            primeiroAJogarNaRodada = maiorCartaInfo.jogadorIndex;
-        }
-        setTimeout(verificarFimDaMao, 2000);
+        // Revela todas as cartas viradas no final da rodada
+        rodadaAtualCartas.forEach(info => {
+            if (info.carta.virada) {
+                info.carta.virada = false;
+                renderizarTudo();
+            }
+        });
+        
+        // Pausa para que o jogador possa ver as cartas reveladas
+        setTimeout(() => {
+            let maiorCartaInfo = rodadaAtualCartas.reduce((maior, atual) => atual.carta.forca > maior.carta.forca ? atual : maior);
+            let timeVencedor = maiorCartaInfo.time;
+            const empatou = rodadaAtualCartas.some(c => c.time !== timeVencedor && c.carta.forca === maiorCartaInfo.carta.forca);
+            
+            if (empatou) {
+                placarRodada[`team1`]++; placarRodada[`team2`]++;
+                atualizarMensagem(`Rodada ${rodadaAtual} empatou!`);
+                primeiroAJogarNaRodada = primeiroAJogarNaRodada;
+            } else {
+                placarRodada[`team${timeVencedor}`]++;
+                atualizarMensagem(`Time ${timeVencedor} venceu a rodada ${rodadaAtual}!`);
+                primeiroAJogarNaRodada = maiorCartaInfo.jogadorIndex;
+            }
+            setTimeout(verificarFimDaMao, 2000);
+        }, 1500);
     }
     
     function verificarFimDaMao() {
