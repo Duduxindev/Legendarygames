@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let jogoEmAndamento = false;
     let jogadorDaVezIndex = 0;
     let lockBoard = false;
+    let trucoPedido = false;
+    let trucoNivel = 0; // 0 = normal, 1 = truco (3pts), 2 = seis (6pts), 3 = nove (9pts), 4 = doze (12pts)
+    let timeQuePediuTruco = null;
     
     // Estado da Rodada
     let rodadaAtual = 1;
@@ -32,17 +35,71 @@ document.addEventListener('DOMContentLoaded', () => {
     let primeiroAJogarNaRodada = 0;
     
     // --- CONSTANTES ---
-    const NAIPE_ICONS = { '♦️': '<svg viewBox="0 0 24 24"><path d="M12 1.5L20.5 12L12 22.5L3.5 12L12 1.5Z"/></svg>', '♠️': '<svg viewBox="0 0 24 24"><path d="M12 1.5C14.21 1.5 16.5 2.66 18 4.5C19.5 6.34 20.5 8.79 20.5 11.5C20.5 15.5 17.5 19.5 12 22.5C6.5 19.5 3.5 15.5 3.5 11.5C3.5 8.79 4.5 6.34 6 4.5C7.5 2.66 9.79 1.5 12 1.5ZM12 4.5C10.16 4.5 8.5 5.25 7.5 6.5C6.5 7.75 6 9.5 6 11.5C6 14.5 8.5 17.5 12 19.5C15.5 17.5 18 14.5 18 11.5C18 9.5 17.5 7.75 16.5 6.5C15.5 5.25 13.84 4.5 12 4.5Z M10.5 18.5V19.5H13.5V18.5H10.5Z"/></svg>', '♥️': '<svg viewBox="0 0 24 24"><path d="M12 22.5C6.5 19.5 3.5 15.5 3.5 11.5C3.5 8.79 4.5 6.34 6 4.5C7.5 2.66 9.79 1.5 12 1.5C14.21 1.5 16.5 2.66 18 4.5C19.5 6.34 20.5 8.79 20.5 11.5C20.5 15.5 17.5 19.5 12 22.5Z"/></svg>', '♣️': '<svg viewBox="0 0 24 24"><path d="M18 10.5C18 8.03 16.47 6 14.5 6C12.53 6 11 8.03 11 10.5C11 12.16 11.83 13.58 13 14.44V18.5H16V14.44C17.17 13.58 18 12.16 18 10.5ZM9.5 6C7.53 6 6 8.03 6 10.5C6 12.16 6.83 13.58 8 14.44V18.5H11V14.44C9.83 13.58 9 12.16 9 10.5ZM15.5 4.5C16.96 4.5 18.17 5.28 18.81 6.5H20.5V9.5H18.81C18.17 10.72 16.96 11.5 15.5 11.5C14.04 11.5 12.83 10.72 12.19 9.5H11.81C11.17 10.72 9.96 11.5 8.5 11.5C7.04 11.5 5.83 10.72 5.19 9.5H3.5V6.5H5.19C5.83 5.28 7.04 4.5 8.5 4.5C9.96 4.5 11.17 5.28 11.81 6.5H12.19C12.83 5.28 14.04 4.5 15.5 4.5ZM10.5 18.5V19.5H13.5V18.5H10.5Z"/></svg>',};
+    const NAIPE_ICONS = { 
+        '♦️': '<svg viewBox="0 0 24 24"><path d="M12 1.5L20.5 12L12 22.5L3.5 12L12 1.5Z"/></svg>', 
+        '♠️': '<svg viewBox="0 0 24 24"><path d="M12 1.5C14.21 1.5 16.5 2.66 18 4.5C19.5 6.34 20.5 8.67 21 11H19C15.69 11 13 13.69 13 17V22.5L12 21.5L11 22.5V17C11 13.69 8.31 11 5 11H3C3.5 8.67 4.5 6.34 6 4.5C7.5 2.66 9.79 1.5 12 1.5Z"/></svg>',
+        '♥️': '<svg viewBox="0 0 24 24"><path d="M12 21.5L10.4 20.09C5.07 15.24 1.5 12.05 1.5 8.19C1.5 5 4 2.5 7.19 2.5C9.02 2.5 10.78 3.39 12 4.82C13.22 3.39 14.98 2.5 16.81 2.5C20 2.5 22.5 5 22.5 8.19C22.5 12.05 18.93 15.24 13.6 20.09L12 21.5Z"/></svg>',
+        '♣️': '<svg viewBox="0 0 24 24"><path d="M12 2C8.69 2 6 4.69 6 8C6 11.31 8.69 14 12 14C15.31 14 18 11.31 18 8C18 4.69 15.31 2 12 2ZM15.66 15H8.34C5.4 15 3 17.4 3 20.34V22H21V20.34C21 17.4 18.6 15 15.66 15Z"/></svg>'
+    };
     const VALORES = ["4", "5", "6", "7", "Q", "J", "K", "A", "2", "3"];
     const NAIPES = ["♦️", "♠️", "♥️", "♣️"];
     const FORCA_COMUM = { "4": 1, "5": 2, "6": 3, "7": 4, "Q": 5, "J": 6, "K": 7, "A": 8, "2": 9, "3": 10 };
     const MANILHAS_FIXAS = { '4♣️': 14, '7♥️': 13, 'A♠️': 12, '7♦️': 11 };
+    const TRUCO_VALORES = [1, 3, 6, 9, 12];
+    const TRUCO_NOMES = ["Normal", "Truco", "Seis", "Nove", "Doze"];
+    const PENSAMENTOS_BOT = {
+        easy: [
+            "Hmm, que carta eu jogo agora?",
+            "Não sei bem o que fazer...",
+            "Vou jogar essa carta aqui!",
+            "Espero que essa seja boa!"
+        ],
+        medium: [
+            "Preciso analisar as cartas na mesa...",
+            "Tenho que vencer essa rodada!",
+            "Vou guardar minhas cartas boas para o final",
+            "Acho que posso vencer com essa carta"
+        ],
+        hard: [
+            "Analisando a melhor jogada estratégica...",
+            "Vou guardar minha manilha para a última rodada",
+            "Preciso fazer essa rodada para garantir a mão",
+            "Vou jogar minha carta mais forte agora"
+        ],
+        trucoDecisions: {
+            accept: [
+                "Aceito o desafio!",
+                "Minhas cartas são boas, vamos lá!",
+                "Você vai se arrepender de pedir truco!"
+            ],
+            refuse: [
+                "Melhor não arriscar...",
+                "Minhas cartas não são boas o suficiente",
+                "Vou correr dessa vez"
+            ],
+            ask: [
+                "Tá com medo?",
+                "Quero ver se você aguenta!",
+                "Vamos aumentar a aposta!"
+            ]
+        }
+    };
 
     // --- FUNÇÕES DE SETUP E RENDERIZAÇÃO ---
-    function criarBaralho() { baralho = []; for (const naipe of NAIPES) for (const valor of VALORES) baralho.push({ valor, naipe, forca: FORCA_COMUM[valor], manilha: false }); }
-    function embaralhar() { for (let i = baralho.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [baralho[i], baralho[j]] = [baralho[j], baralho[i]]; } }
+    function criarBaralho() { 
+        baralho = []; 
+        for (const naipe of NAIPES) 
+            for (const valor of VALORES) 
+                baralho.push({ valor, naipe, forca: FORCA_COMUM[valor], manilha: false }); 
+    }
+
+    function embaralhar() { 
+        for (let i = baralho.length - 1; i > 0; i--) { 
+            const j = Math.floor(Math.random() * (i + 1)); 
+            [baralho[i], baralho[j]] = [baralho[j], baralho[i]]; 
+        } 
+    }
     
-    // Lógica verificada para garantir que a propriedade 'manilha' seja atribuída corretamente.
     function aplicarManilhasFixas() {
         baralho.forEach(c => {
             const chave = c.valor + c.naipe;
@@ -58,7 +115,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (facedown) return '<div class="card facedown"></div>';
         const cor = (carta.naipe === '♦️' || carta.naipe === '♥️') ? 'red' : 'black';
         const classeManilha = carta.manilha ? ' manilha' : '';
-        return `<div class="card ${cor}${classeManilha}" data-valor="${carta.valor}" data-naipe="${carta.naipe}"><span>${carta.valor}</span><div class="card-icon">${NAIPE_ICONS[carta.naipe]}</div></div>`;
+        return `<div class="card ${cor}${classeManilha}" data-valor="${carta.valor}" data-naipe="${carta.naipe}">
+                   <span>${carta.valor}</span>
+                   <div class="card-icon">${NAIPE_ICONS[carta.naipe]}</div>
+               </div>`;
     }
 
     function renderizarTudo() {
@@ -69,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
             area.tableEl.innerHTML = renderizarCarta(cartaNaMesa?.carta);
         });
         adicionarListenersCartasJogador();
+        trucoButton.textContent = `${TRUCO_NOMES[trucoNivel]}!`;
     }
     
     // --- LÓGICA DO MENU ---
@@ -78,11 +139,162 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('active');
             gameSettings.difficulty = btn.dataset.difficulty;
         }));
+
         startGameBtn.addEventListener('click', () => {
             mainMenuEl.classList.add('hidden');
             tableTopEl.classList.remove('hidden');
             iniciarJogo();
         });
+
+        dealButton.addEventListener('click', iniciarNovaMao);
+        trucoButton.addEventListener('click', pedirTruco);
+    }
+
+    function pedirTruco() {
+        if (!jogoEmAndamento || lockBoard || trucoPedido) return;
+        
+        if (trucoNivel >= 4) {
+            atualizarMensagem("Já estamos no valor máximo!");
+            return;
+        }
+        
+        trucoPedido = true;
+        timeQuePediuTruco = jogadores[0].time;
+        atualizarMensagem("TRUCO! O time adversário está decidindo...");
+        trucoButton.disabled = true;
+        
+        setTimeout(() => {
+            const timeAdversario = timeQuePediuTruco === 1 ? 2 : 1;
+            const jogadoresAdversarios = jogadores.filter(j => j.time === timeAdversario);
+            
+            // Lógica de decisão baseada na dificuldade e na qualidade das cartas
+            let forcaMediaCartas = 0;
+            jogadoresAdversarios.forEach(j => {
+                forcaMediaCartas += j.mao.reduce((sum, c) => sum + c.forca, 0) / j.mao.length;
+            });
+            forcaMediaCartas /= jogadoresAdversarios.length;
+            
+            // Chances de aceitar o truco variam com a dificuldade
+            let chanceDeAceitar = 0;
+            switch (gameSettings.difficulty) {
+                case 'easy': chanceDeAceitar = 0.8; break; // Aceita mais facilmente
+                case 'medium': chanceDeAceitar = 0.5 + (forcaMediaCartas / 20); break; // Considera a força das cartas
+                case 'hard': chanceDeAceitar = 0.3 + (forcaMediaCartas / 15); break; // Mais cauteloso
+            }
+            
+            // Diminui a chance de aceitar em níveis mais altos de truco
+            chanceDeAceitar -= trucoNivel * 0.1;
+            
+            const aceita = Math.random() < chanceDeAceitar;
+            
+            if (aceita) {
+                const pensamento = PENSAMENTOS_BOT.trucoDecisions.accept[Math.floor(Math.random() * PENSAMENTOS_BOT.trucoDecisions.accept.length)];
+                mostrarPensamentoCPU(pensamento);
+                
+                trucoNivel++;
+                valorDaMao = TRUCO_VALORES[trucoNivel];
+                atualizarMensagem(`Truco ACEITO! Valor da mão: ${valorDaMao} pontos`);
+                
+                setTimeout(() => {
+                    trucoPedido = false;
+                    trucoButton.disabled = false;
+                    trucoButton.textContent = `${TRUCO_NOMES[trucoNivel]}!`;
+                    processarTurno();
+                }, 1500);
+            } else {
+                const pensamento = PENSAMENTOS_BOT.trucoDecisions.refuse[Math.floor(Math.random() * PENSAMENTOS_BOT.trucoDecisions.refuse.length)];
+                mostrarPensamentoCPU(pensamento);
+                
+                atualizarMensagem("Truco RECUSADO! Você ganhou a mão.");
+                placar[`team${timeQuePediuTruco}`] += TRUCO_VALORES[trucoNivel];
+                atualizarPlacarUI();
+                
+                setTimeout(() => {
+                    jogadorDaVezIndex = (jogadorDaVezIndex + 1) % 4;
+                    iniciarNovaMao();
+                }, 2000);
+            }
+        }, 2000);
+    }
+
+    function cpuPedirTruco(cpu) {
+        if (trucoNivel >= 4 || trucoPedido) return false;
+        
+        let forcaMedia = cpu.mao.reduce((sum, c) => sum + c.forca, 0) / cpu.mao.length;
+        let limiarTruco;
+        
+        switch (gameSettings.difficulty) {
+            case 'easy': limiarTruco = 10; break; // Raramente pede truco
+            case 'medium': limiarTruco = 8; break; // Pede truco com cartas médias
+            case 'hard': limiarTruco = 7; break; // Pede truco com mais frequência
+        }
+        
+        // Chance maior de pedir truco quando está perdendo
+        if (placar[`team${cpu.time === 1 ? 2 : 1}`] > placar[`team${cpu.time}`]) {
+            limiarTruco--;
+        }
+        
+        // Chance maior de pedir truco em rodadas avançadas
+        if (rodadaAtual >= 2) {
+            limiarTruco--;
+        }
+        
+        if (forcaMedia >= limiarTruco && Math.random() < 0.3) {
+            const pensamento = PENSAMENTOS_BOT.trucoDecisions.ask[Math.floor(Math.random() * PENSAMENTOS_BOT.trucoDecisions.ask.length)];
+            mostrarPensamentoCPU(pensamento);
+            
+            trucoPedido = true;
+            timeQuePediuTruco = cpu.time;
+            atualizarMensagem(`${cpu.nome} pediu ${TRUCO_NOMES[trucoNivel+1]}! Aceita?`);
+            
+            // Cria botões temporários para aceitar/recusar
+            const aceitaBtn = document.createElement('button');
+            aceitaBtn.textContent = "Aceitar";
+            aceitaBtn.classList.add('truco-response');
+            
+            const recusaBtn = document.createElement('button');
+            recusaBtn.textContent = "Recusar";
+            recusaBtn.classList.add('truco-response');
+            
+            const btnContainer = document.createElement('div');
+            btnContainer.id = 'truco-response-container';
+            btnContainer.style.position = 'fixed';
+            btnContainer.style.top = '50%';
+            btnContainer.style.left = '50%';
+            btnContainer.style.transform = 'translate(-50%, -50%)';
+            btnContainer.style.zIndex = '100';
+            btnContainer.style.display = 'flex';
+            btnContainer.style.gap = '20px';
+            
+            btnContainer.appendChild(aceitaBtn);
+            btnContainer.appendChild(recusaBtn);
+            document.body.appendChild(btnContainer);
+            
+            aceitaBtn.addEventListener('click', () => {
+                document.body.removeChild(btnContainer);
+                trucoNivel++;
+                valorDaMao = TRUCO_VALORES[trucoNivel];
+                atualizarMensagem(`Você aceitou o ${TRUCO_NOMES[trucoNivel]}! Valor da mão: ${valorDaMao} pontos`);
+                trucoButton.textContent = `${TRUCO_NOMES[trucoNivel]}!`;
+                trucoPedido = false;
+                setTimeout(processarTurno, 1500);
+            });
+            
+            recusaBtn.addEventListener('click', () => {
+                document.body.removeChild(btnContainer);
+                atualizarMensagem(`Você recusou o ${TRUCO_NOMES[trucoNivel+1]}! Adversários ganham a mão.`);
+                placar[`team${cpu.time}`] += TRUCO_VALORES[trucoNivel];
+                atualizarPlacarUI();
+                setTimeout(() => {
+                    jogadorDaVezIndex = (jogadorDaVezIndex + 1) % 4;
+                    iniciarNovaMao();
+                }, 2000);
+            });
+            
+            return true;
+        }
+        
+        return false;
     }
 
     // --- LÓGICA PRINCIPAL DO JOGO ---
@@ -94,17 +306,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function iniciarNovaMao() {
         if (placar.team1 >= 12 || placar.team2 >= 12) {
-            atualizarMensagem(`FIM DE JOGO! Placar: ${placar.team1} a ${placar.team2}`);
-            dealButton.textContent = "Menu";
+            const vencedor = placar.team1 >= 12 ? "Seu time" : "Time adversário";
+            atualizarMensagem(`FIM DE JOGO! ${vencedor} venceu! Placar: ${placar.team1} a ${placar.team2}`);
+            dealButton.textContent = "Nova Partida";
             dealButton.onclick = () => window.location.reload();
             return;
         }
-        lockBoard = true;
-        jogoEmAndamento = true; valorDaMao = 1; rodadaAtual = 1;
-        placarRodada = { team1: 0, team2: 0 }; cartasNaMesa = [];
-        dealButton.disabled = true; trucoButton.disabled = false;
         
-        criarBaralho(); aplicarManilhasFixas(); embaralhar();
+        lockBoard = true;
+        jogoEmAndamento = true;
+        valorDaMao = 1;
+        trucoNivel = 0;
+        trucoPedido = false;
+        rodadaAtual = 1;
+        placarRodada = { team1: 0, team2: 0 };
+        cartasNaMesa = [];
+        dealButton.disabled = true;
+        trucoButton.disabled = false;
+        trucoButton.textContent = "TRUCO!";
+        
+        criarBaralho();
+        aplicarManilhasFixas();
+        embaralhar();
         
         jogadores = [
             { id: 0, nome: 'Você', time: 1, mao: baralho.splice(0, 3), tipo: 'humano' },
@@ -112,6 +335,27 @@ document.addEventListener('DOMContentLoaded', () => {
             { id: 2, nome: 'Parceiro', time: 1, mao: baralho.splice(0, 3), tipo: 'cpu' },
             { id: 3, nome: 'Oponente 2', time: 2, mao: baralho.splice(0, 3), tipo: 'cpu' }
         ];
+
+        // Ajuste de dificuldade: distribuir melhores cartas baseado na dificuldade
+        if (gameSettings.difficulty === 'easy') {
+            // No modo fácil, aumentamos a chance do jogador ter boas cartas
+            const todasCartas = [...jogadores[0].mao, ...jogadores[1].mao, ...jogadores[2].mao, ...jogadores[3].mao];
+            todasCartas.sort((a, b) => b.forca - a.forca);
+            
+            jogadores[0].mao = todasCartas.slice(0, 3); // Jogador humano recebe as melhores cartas
+            jogadores[2].mao = todasCartas.slice(3, 6); // Parceiro recebe cartas médias-altas
+            jogadores[1].mao = todasCartas.slice(6, 9); // Oponentes recebem as piores cartas
+            jogadores[3].mao = todasCartas.slice(9, 12);
+        } else if (gameSettings.difficulty === 'hard') {
+            // No modo difícil, os oponentes recebem melhores cartas
+            const todasCartas = [...jogadores[0].mao, ...jogadores[1].mao, ...jogadores[2].mao, ...jogadores[3].mao];
+            todasCartas.sort((a, b) => b.forca - a.forca);
+            
+            jogadores[1].mao = todasCartas.slice(0, 3); // Oponentes recebem as melhores cartas
+            jogadores[3].mao = todasCartas.slice(3, 6);
+            jogadores[2].mao = todasCartas.slice(6, 9); // Parceiro recebe cartas médias-baixas
+            jogadores[0].mao = todasCartas.slice(9, 12); // Jogador humano recebe as piores cartas
+        }
         
         primeiroAJogarNaRodada = jogadorDaVezIndex;
         renderizarTudo();
@@ -124,7 +368,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const jogadorAtual = jogadores[jogadorDaVezIndex];
         atualizarMensagem(`Vez de: ${jogadorAtual.nome}`);
         lockBoard = jogadorAtual.tipo === 'cpu';
+        
         if (jogadorAtual.tipo === 'cpu') {
+            // CPU pode pedir truco antes de jogar
+            if (cpuPedirTruco(jogadorAtual)) {
+                return; // Espera a resposta do jogador ao truco
+            }
+            
             setTimeout(() => cpuJoga(jogadorAtual), 1500);
         }
     }
@@ -132,8 +382,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function adicionarListenersCartasJogador() {
         playerAreas[0].handEl.querySelectorAll('.card').forEach(cardEl => {
             cardEl.addEventListener('click', () => {
-                if (lockBoard || jogadores[jogadorDaVezIndex].tipo !== 'humano') return;
-                const valor = cardEl.dataset.valor; const naipe = cardEl.dataset.naipe;
+                if (lockBoard || jogadores[jogadorDaVezIndex].tipo !== 'humano' || trucoPedido) return;
+                const valor = cardEl.dataset.valor;
+                const naipe = cardEl.dataset.naipe;
                 const cartaJogada = jogadores[0].mao.find(c => c.valor === valor && c.naipe === naipe);
                 jogarCarta(jogadores[0], cartaJogada);
             });
@@ -148,23 +399,156 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(avancarTurno, 500);
     }
     
+    function mostrarPensamentoCPU(pensamento) {
+        const balaoEl = document.createElement('div');
+        balaoEl.classList.add('cpu-thought');
+        balaoEl.style.position = 'fixed';
+        balaoEl.style.top = '30%';
+        balaoEl.style.left = '50%';
+        balaoEl.style.transform = 'translate(-50%, -50%)';
+        balaoEl.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        balaoEl.style.padding = '15px 20px';
+        balaoEl.style.borderRadius = '20px';
+        balaoEl.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.2)';
+        balaoEl.style.zIndex = '100';
+        balaoEl.style.fontFamily = 'var(--font-main)';
+        balaoEl.style.maxWidth = '300px';
+        balaoEl.style.textAlign = 'center';
+        
+        balaoEl.textContent = pensamento;
+        document.body.appendChild(balaoEl);
+        
+        setTimeout(() => {
+            balaoEl.style.opacity = '0';
+            balaoEl.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => document.body.removeChild(balaoEl), 500);
+        }, 2000);
+    }
+    
     function cpuJoga(cpu) {
+        // Mostra o "pensamento" do CPU
+        const dificuldade = gameSettings.difficulty;
+        const pensamentos = PENSAMENTOS_BOT[dificuldade];
+        const pensamento = pensamentos[Math.floor(Math.random() * pensamentos.length)];
+        mostrarPensamentoCPU(pensamento);
+        
+        // Lógica de jogo baseada na dificuldade
         let cartaJogada;
         cpu.mao.sort((a, b) => a.forca - b.forca);
-        switch (gameSettings.difficulty) {
-            case 'easy': cartaJogada = cpu.mao[Math.floor(Math.random() * cpu.mao.length)]; break;
-            case 'medium':
-            case 'hard':
-                const cartasNaRodada = cartasNaMesa.slice(-(cartasNaMesa.length % 4));
-                const maiorForcaNaMesa = Math.max(0, ...cartasNaRodada.map(c => c.carta.forca));
-                const cartaParaGanhar = cpu.mao.find(c => c.forca > maiorForcaNaMesa);
-                if (gameSettings.difficulty === 'hard' && rodadaAtual === 1) {
-                    cartaJogada = cpu.mao[cpu.mao.length - 1];
+        
+        const cartasNaRodada = cartasNaMesa.slice(-(cartasNaMesa.length % 4));
+        const maiorForcaNaMesa = Math.max(0, ...cartasNaRodada.map(c => c.carta.forca));
+        const maiorCartaInfo = cartasNaRodada.length > 0 ? 
+            cartasNaRodada.reduce((maior, atual) => atual.carta.forca > maior.carta.forca ? atual : maior) : 
+            null;
+        
+        switch (dificuldade) {
+            case 'easy':
+                // No fácil, joga praticamente aleatório
+                if (Math.random() < 0.7) {
+                    cartaJogada = cpu.mao[Math.floor(Math.random() * cpu.mao.length)];
                 } else {
-                    cartaJogada = cartaParaGanhar || cpu.mao[0];
+                    // Às vezes tenta ganhar
+                    const cartaParaGanhar = cpu.mao.find(c => c.forca > maiorForcaNaMesa);
+                    cartaJogada = cartaParaGanhar || cpu.mao[Math.floor(Math.random() * cpu.mao.length)];
+                }
+                break;
+                
+            case 'medium':
+                // No médio, tem alguma estratégia
+                if (rodadaAtual === 1) {
+                    // Na primeira rodada, tenta economizar cartas fortes
+                    if (cartasNaRodada.length === 0 || 
+                        (maiorCartaInfo && maiorCartaInfo.time === cpu.time)) {
+                        // Se é o primeiro a jogar ou se seu time já está vencendo, joga carta fraca
+                        cartaJogada = cpu.mao[0]; // Carta mais fraca
+                    } else {
+                        // Tenta ganhar a rodada com a carta mais fraca possível
+                        const cartaParaGanhar = cpu.mao.find(c => c.forca > maiorForcaNaMesa);
+                        cartaJogada = cartaParaGanhar || cpu.mao[cpu.mao.length - 1]; // A mais forte se não tiver como ganhar
+                    }
+                } else {
+                    // Nas outras rodadas, joga mais estrategicamente
+                    if (placarRodada[`team${cpu.time}`] > 0) {
+                        // Se já ganhou uma rodada, tenta ganhar com carta fraca
+                        const cartaParaGanhar = cpu.mao.find(c => c.forca > maiorForcaNaMesa);
+                        cartaJogada = cartaParaGanhar || cpu.mao[0];
+                    } else {
+                        // Precisa ganhar, joga mais forte
+                        cartaJogada = cpu.mao[cpu.mao.length - 1]; // Carta mais forte
+                    }
+                }
+                break;
+                
+            case 'hard':
+                // No difícil, joga quase como um profissional
+                if (rodadaAtual === 1) {
+                    // Na primeira rodada, avalia se vale a pena tentar ganhar
+                    const parceiro = jogadores.find(j => j.time === cpu.time && j.id !== cpu.id);
+                    const parceiroJogou = cartasNaRodada.some(c => c.jogadorIndex === parceiro.id);
+                    
+                    if (parceiroJogou && maiorCartaInfo && maiorCartaInfo.time === cpu.time) {
+                        // Parceiro já está ganhando, joga fraco
+                        cartaJogada = cpu.mao[0];
+                    } else if (cartasNaRodada.length === 0 || cartasNaRodada.length === 2) {
+                        // É o primeiro ou terceiro a jogar, joga forte
+                        if (cpu.mao.some(c => c.manilha)) {
+                            // Se tem manilha, joga ela para garantir
+                            cartaJogada = cpu.mao.find(c => c.manilha);
+                        } else {
+                            cartaJogada = cpu.mao[cpu.mao.length - 1]; // Carta mais forte
+                        }
+                    } else {
+                        // É o segundo ou quarto, tenta ganhar com o mínimo necessário
+                        const cartaParaGanhar = cpu.mao.find(c => c.forca > maiorForcaNaMesa);
+                        if (cartaParaGanhar) {
+                            // Se pode ganhar, joga a mais fraca possível para isso
+                            const cartasGanhadoras = cpu.mao.filter(c => c.forca > maiorForcaNaMesa);
+                            cartasGanhadoras.sort((a, b) => a.forca - b.forca);
+                            cartaJogada = cartasGanhadoras[0];
+                        } else {
+                            // Se não pode ganhar, joga a mais fraca
+                            cartaJogada = cpu.mao[0];
+                        }
+                    }
+                } else {
+                    // Em rodadas avançadas, joga mais calculadamente
+                    if (placarRodada[`team${cpu.time}`] > 0) {
+                        // Se já ganhou uma rodada, só precisa de mais uma
+                        if (cartasNaRodada.length === 0 || 
+                            (maiorCartaInfo && maiorCartaInfo.time === cpu.time)) {
+                            // Se é o primeiro ou se está ganhando, joga fraco
+                            cartaJogada = cpu.mao[0];
+                        } else {
+                            // Tenta ganhar com o mínimo necessário
+                            const cartaParaGanhar = cpu.mao.find(c => c.forca > maiorForcaNaMesa);
+                            cartaJogada = cartaParaGanhar || cpu.mao[0];
+                        }
+                    } else if (placarRodada[`team${cpu.time === 1 ? 2 : 1}`] > 0) {
+                        // Adversário já ganhou uma, precisa ganhar essa a qualquer custo
+                        if (cpu.mao.some(c => c.manilha)) {
+                            cartaJogada = cpu.mao.find(c => c.manilha);
+                        } else {
+                            cartaJogada = cpu.mao[cpu.mao.length - 1]; // Carta mais forte
+                        }
+                    } else {
+                        // Ainda está 0x0, joga médio
+                        if (cartasNaRodada.length === 0) {
+                            // É o primeiro, joga médio
+                            cartaJogada = cpu.mao[Math.floor(cpu.mao.length / 2)];
+                        } else if (maiorCartaInfo && maiorCartaInfo.time === cpu.time) {
+                            // Time já está ganhando, economiza
+                            cartaJogada = cpu.mao[0];
+                        } else {
+                            // Tenta ganhar
+                            const cartaParaGanhar = cpu.mao.find(c => c.forca > maiorForcaNaMesa);
+                            cartaJogada = cartaParaGanhar || cpu.mao[cpu.mao.length - 1];
+                        }
+                    }
                 }
                 break;
         }
+        
         jogarCarta(cpu, cartaJogada);
     }
     
@@ -223,17 +607,26 @@ document.addEventListener('DOMContentLoaded', () => {
     function finalizarMao(vencedor) {
         if (vencedor !== "empate") {
             placar[`team${vencedor}`] += valorDaMao;
-            atualizarMensagem(`Time ${vencedor} venceu a mão!`);
+            atualizarMensagem(`Time ${vencedor} venceu a mão! +${valorDaMao} pontos`);
         } else {
             atualizarMensagem("Mão empatada! Ninguém marca pontos.");
         }
         
+        atualizarPlacarUI();
+        dealButton.disabled = false;
+        trucoButton.disabled = true;
         jogadorDaVezIndex = (jogadorDaVezIndex + 1) % 4;
-        setTimeout(iniciarNovaMao, 2500);
+        jogoEmAndamento = false;
     }
 
-    function atualizarMensagem(msg) { messageBoxEl.textContent = msg; }
-    function atualizarPlacarUI() { scoresEl.team1.textContent = placar.team1; scoresEl.team2.textContent = placar.team2; }
+    function atualizarMensagem(msg) { 
+        messageBoxEl.textContent = msg; 
+    }
+    
+    function atualizarPlacarUI() { 
+        scoresEl.team1.textContent = placar.team1; 
+        scoresEl.team2.textContent = placar.team2; 
+    }
 
     // --- INICIALIZAÇÃO ---
     setupMenu();
