@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let trucoPedido = false;
     let trucoNivel = 0; // 0 = normal, 1 = truco (3pts), 2 = seis (6pts), 3 = nove (9pts), 4 = doze (12pts)
     let timeQuePediuTruco = null;
-    let modoCartaVirada = false; // Nova variável para controlar o modo de jogo da carta
+    let modoCartaVirada = false; // Controlar o modo de jogo da carta
     
     // Estado da Rodada
     let rodadaAtual = 1;
@@ -170,6 +170,110 @@ document.addEventListener('DOMContentLoaded', () => {
         cartaViradaBtn.textContent = "Modo: Carta Normal";
         cartaViradaBtn.addEventListener('click', toggleModoCartaVirada);
         actionsEl.appendChild(cartaViradaBtn);
+        
+        // Adiciona botão de ajuda
+        criarBotaoAjuda();
+    }
+    
+    function criarBotaoAjuda() {
+        const helpBtn = document.createElement('button');
+        helpBtn.id = 'help-button';
+        helpBtn.textContent = '?';
+        helpBtn.style.position = 'fixed';
+        helpBtn.style.bottom = '20px';
+        helpBtn.style.left = '20px';
+        helpBtn.style.width = '40px';
+        helpBtn.style.height = '40px';
+        helpBtn.style.borderRadius = '50%';
+        helpBtn.style.backgroundColor = 'var(--primary-accent)';
+        helpBtn.style.color = 'white';
+        helpBtn.style.fontSize = '20px';
+        helpBtn.style.border = 'none';
+        helpBtn.style.cursor = 'pointer';
+        helpBtn.style.zIndex = '99';
+        helpBtn.onclick = mostrarAjuda;
+        document.body.appendChild(helpBtn);
+    }
+    
+    function mostrarAjuda() {
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        modal.style.display = 'flex';
+        modal.style.justifyContent = 'center';
+        modal.style.alignItems = 'center';
+        modal.style.zIndex = '1000';
+        
+        const modalContent = document.createElement('div');
+        modalContent.style.backgroundColor = 'white';
+        modalContent.style.padding = '30px';
+        modalContent.style.borderRadius = '10px';
+        modalContent.style.maxWidth = '600px';
+        modalContent.style.maxHeight = '80%';
+        modalContent.style.overflowY = 'auto';
+        modalContent.style.position = 'relative';
+        
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '×';
+        closeBtn.style.position = 'absolute';
+        closeBtn.style.top = '10px';
+        closeBtn.style.right = '10px';
+        closeBtn.style.border = 'none';
+        closeBtn.style.background = 'none';
+        closeBtn.style.fontSize = '24px';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.onclick = () => { document.body.removeChild(modal); };
+        
+        const title = document.createElement('h2');
+        title.textContent = 'Regras do Truco';
+        title.style.marginBottom = '20px';
+        title.style.color = 'var(--primary-accent)';
+        
+        const content = document.createElement('div');
+        content.innerHTML = `
+            <h3>Sistema de Manilhas Fixas</h3>
+            <p>Nesta versão do jogo, usamos <strong>manilhas fixas</strong> (diferentes do truco tradicional):</p>
+            <ul style="margin-bottom: 20px;">
+                <li><strong>4 de paus (♣️)</strong>: A mais forte (força 14)</li>
+                <li><strong>7 de copas (♥️)</strong>: Segunda mais forte (força 13)</li>
+                <li><strong>Ás de espadas (♠️)</strong>: Terceira mais forte (força 12)</li>
+                <li><strong>7 de ouros (♦️)</strong>: Quarta mais forte (força 11)</li>
+            </ul>
+            
+            <h3>Ordem das demais cartas (da mais forte para a mais fraca):</h3>
+            <p>3, 2, A, K, J, Q, 7, 6, 5, 4 (exceto as manilhas)</p>
+            
+            <h3>Como jogar cartas viradas</h3>
+            <p>Você pode jogar cartas fechadas (viradas) para confundir os adversários:</p>
+            <ol>
+                <li>Clique no botão "Modo: Carta Normal" para alternar para "Modo: Carta Virada"</li>
+                <li>Selecione a carta que deseja jogar virada</li>
+                <li>O modo volta automaticamente para "Carta Normal" após jogar</li>
+            </ol>
+            <p>As cartas viradas são reveladas no final de cada rodada.</p>
+            
+            <h3>Sistema de pontuação</h3>
+            <ul>
+                <li><strong>Normal:</strong> 1 ponto</li>
+                <li><strong>Truco:</strong> 3 pontos</li>
+                <li><strong>Seis:</strong> 6 pontos</li>
+                <li><strong>Nove:</strong> 9 pontos</li>
+                <li><strong>Doze:</strong> 12 pontos</li>
+            </ul>
+            
+            <h3>Como vencer</h3>
+            <p>O primeiro time a chegar a 12 pontos vence o jogo.</p>
+        `;
+        
+        modalContent.appendChild(closeBtn);
+        modalContent.appendChild(title);
+        modalContent.appendChild(content);
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
     }
     
     function toggleModoCartaVirada() {
@@ -371,29 +475,70 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Ajuste de dificuldade: distribuir melhores cartas baseado na dificuldade
         if (gameSettings.difficulty === 'easy') {
-            // No modo fácil, aumentamos a chance do jogador ter boas cartas
-            const todasCartas = [...jogadores[0].mao, ...jogadores[1].mao, ...jogadores[2].mao, ...jogadores[3].mao];
-            todasCartas.sort((a, b) => b.forca - a.forca);
-            
-            jogadores[0].mao = todasCartas.slice(0, 3); // Jogador humano recebe as melhores cartas
-            jogadores[2].mao = todasCartas.slice(3, 6); // Parceiro recebe cartas médias-altas
-            jogadores[1].mao = todasCartas.slice(6, 9); // Oponentes recebem as piores cartas
-            jogadores[3].mao = todasCartas.slice(9, 12);
+            // No modo fácil, o jogador tem mais chance de receber boas cartas
+            distribuirCartasPorDificuldade(0.7, 0.4, 0.6, 0.3);
+        } else if (gameSettings.difficulty === 'medium') {
+            // No modo médio, distribuição mais equilibrada
+            distribuirCartasPorDificuldade(0.5, 0.5, 0.5, 0.5);
         } else if (gameSettings.difficulty === 'hard') {
-            // No modo difícil, os oponentes recebem melhores cartas
-            const todasCartas = [...jogadores[0].mao, ...jogadores[1].mao, ...jogadores[2].mao, ...jogadores[3].mao];
-            todasCartas.sort((a, b) => b.forca - a.forca);
-            
-            jogadores[1].mao = todasCartas.slice(0, 3); // Oponentes recebem as melhores cartas
-            jogadores[3].mao = todasCartas.slice(3, 6);
-            jogadores[2].mao = todasCartas.slice(6, 9); // Parceiro recebe cartas médias-baixas
-            jogadores[0].mao = todasCartas.slice(9, 12); // Jogador humano recebe as piores cartas
+            // No modo difícil, adversários têm mais chance de receber boas cartas
+            distribuirCartasPorDificuldade(0.3, 0.6, 0.4, 0.7);
         }
         
         primeiroAJogarNaRodada = jogadorDaVezIndex;
         renderizarTudo();
         atualizarPlacarUI();
         processarTurno();
+    }
+    
+    // Função melhorada para distribuir cartas de acordo com a dificuldade
+    function distribuirCartasPorDificuldade(chanceJogador, chanceOponente1, chanceParceiro, chanceOponente2) {
+        // Método mais equilibrado - cada jogador tem uma chance de receber uma manilha
+        const manilhas = baralho.filter(c => c.manilha);
+        const cartasComuns = baralho.filter(c => !c.manilha);
+        
+        embaralhar(); // Embaralha novamente para garantir aleatoriedade
+        
+        // Limpa as mãos
+        jogadores.forEach(j => j.mao = []);
+        
+        // Distribui manilhas baseado nas chances
+        manilhas.forEach(manilha => {
+            const rand = Math.random();
+            if (rand < chanceJogador) {
+                if (jogadores[0].mao.length < 3) jogadores[0].mao.push(manilha);
+                else manilha.realocada = true;
+            } else if (rand < chanceJogador + chanceOponente1) {
+                if (jogadores[1].mao.length < 3) jogadores[1].mao.push(manilha);
+                else manilha.realocada = true;
+            } else if (rand < chanceJogador + chanceOponente1 + chanceParceiro) {
+                if (jogadores[2].mao.length < 3) jogadores[2].mao.push(manilha);
+                else manilha.realocada = true;
+            } else {
+                if (jogadores[3].mao.length < 3) jogadores[3].mao.push(manilha);
+                else manilha.realocada = true;
+            }
+        });
+        
+        // Realoca manilhas que não foram distribuídas
+        const manilhasRealocadas = manilhas.filter(m => m.realocada);
+        manilhasRealocadas.forEach(m => {
+            delete m.realocada;
+            cartasComuns.push(m);
+        });
+        
+        // Embaralha as cartas comuns
+        embaralhar();
+        
+        // Completa as mãos com cartas comuns
+        jogadores.forEach(jogador => {
+            while (jogador.mao.length < 3 && cartasComuns.length > 0) {
+                jogador.mao.push(cartasComuns.pop());
+            }
+        });
+        
+        // Ordena as cartas por força (mais fácil para o jogador analisar)
+        jogadores[0].mao.sort((a, b) => b.forca - a.forca);
     }
     
     function processarTurno() {
@@ -425,6 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     cartaJogada.virada = true;
                     // Desativa o modo após jogar uma carta virada
                     modoCartaVirada = false;
+                    renderizarTudo(); // Atualiza a UI para mostrar o botão no estado normal
                 }
                 
                 jogarCarta(jogadores[0], cartaJogada);
@@ -437,6 +583,13 @@ document.addEventListener('DOMContentLoaded', () => {
         jogador.mao = jogador.mao.filter(c => c !== carta);
         cartasNaMesa.push({ carta, jogadorIndex: jogador.id, time: jogador.time });
         renderizarTudo();
+        
+        // Efeito de animação para a carta jogada
+        const cartaEl = document.querySelector(`#card-spot-${jogador.id === 0 ? 'player' : jogador.id === 1 ? 'opponent1' : jogador.id === 2 ? 'partner' : 'opponent2'} .card`);
+        if (cartaEl) {
+            cartaEl.style.animation = 'card-played 0.3s ease-out';
+        }
+        
         setTimeout(avancarTurno, 500);
     }
     
@@ -697,6 +850,61 @@ document.addEventListener('DOMContentLoaded', () => {
         scoresEl.team2.textContent = placar.team2; 
     }
 
+    // Adiciona estilos para animação das cartas
+    function adicionarEstilosAnimacao() {
+        const styleEl = document.createElement('style');
+        styleEl.textContent = `
+            @keyframes card-played {
+                0% { transform: scale(1.2); box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
+                100% { transform: scale(1); box-shadow: 0 2px 3px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.2); }
+            }
+            
+            .active {
+                background-color: var(--secondary-accent) !important;
+                color: white !important;
+            }
+            
+            #help-button {
+                transition: transform 0.2s ease;
+            }
+            
+            #help-button:hover {
+                transform: scale(1.1);
+            }
+            
+            .truco-response {
+                padding: 10px 20px;
+                margin: 0 10px;
+                font-size: 18px;
+                font-weight: bold;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                transition: transform 0.2s ease;
+            }
+            
+            .truco-response:first-child {
+                background-color: var(--primary-accent);
+                color: white;
+            }
+            
+            .truco-response:last-child {
+                background-color: var(--secondary-accent);
+                color: white;
+            }
+            
+            .truco-response:hover {
+                transform: scale(1.1);
+            }
+            
+            #carta-virada-btn.active {
+                background-color: var(--secondary-accent);
+            }
+        `;
+        document.head.appendChild(styleEl);
+    }
+
     // --- INICIALIZAÇÃO ---
+    adicionarEstilosAnimacao();
     setupMenu();
 });
