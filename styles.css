@@ -1,0 +1,79 @@
+:root {
+    --bg-color: #f4f1e9;
+    --primary-accent: #0b6623;
+    --secondary-accent: #c0392b;
+    --text-dark: #333333;
+    --text-light: #ffffff;
+    --font-main: 'Lato', sans-serif;
+    --font-display: 'Merriweather', serif;
+}
+
+body {
+    font-family: var(--font-main);
+    color: var(--text-dark);
+    background-color: #d7c7ad;
+    background-image: url('https://www.transparenttextures.com/patterns/light-wood-fibers.png');
+    min-height: 100vh;
+    overflow: hidden;
+    user-select: none;
+}
+
+/* --- ESTILOS DO MENU --- */
+#main-menu { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; z-index: 100; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); }
+.menu-content { text-align: center; background: var(--bg-color); padding: 40px 60px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+.game-title { font-family: var(--font-display); font-size: 6rem; font-weight: 900; color: var(--primary-accent); margin-bottom: 20px; }
+.difficulty-selector { margin: 30px 0; }
+.difficulty-selector h2 { font-size: 1.5rem; margin-bottom: 15px; font-weight: 700; color: var(--text-dark); }
+.difficulty-btn { font-family: var(--font-main); font-weight: 700; font-size: 1rem; padding: 10px 25px; margin: 0 5px; border: 2px solid var(--primary-accent); background: transparent; color: var(--primary-accent); cursor: pointer; transition: all 0.2s ease; border-radius: 5px; }
+.difficulty-btn:hover { background: var(--primary-accent); color: var(--text-light); }
+.difficulty-btn.active { background: var(--primary-accent); color: var(--text-light); transform: scale(1.1); }
+#start-game-btn { font-family: var(--font-display); font-weight: 700; font-size: 1.8rem; padding: 12px 60px; background: var(--secondary-accent); color: var(--text-light); border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; }
+#start-game-btn:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(192, 57, 43, 0.4); }
+
+/* --- ESTILOS DA MESA DE JOGO --- */
+.hidden { display: none !important; }
+#table-top { width: 100vw; height: 100vh; display: grid; grid-template-areas: ". partner ." "opp1 center opp2" ". player ."; grid-template-rows: 1fr 2fr 1fr; grid-template-columns: 1fr 3fr 1fr; padding: 15px; box-sizing: border-box; }
+
+.player-area { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; }
+.player-area.vertical { flex-direction: row; }
+.player-area.vertical .hand { flex-direction: column; gap: -70px; }
+.player-info { font-family: var(--font-display); font-size: 1.5rem; color: var(--text-dark); background: rgba(255,255,255,0.5); padding: 2px 15px; border-radius: 5px; }
+
+.hand { display: flex; justify-content: center; gap: -35px; }
+#center-area { display: flex; flex-direction: column; justify-content: space-around; align-items: center; padding: 20px 0; }
+#info-area { text-align: center; }
+#placar { font-family: var(--font-display); font-size: 2.5rem; font-weight: 900; }
+#table { width: 350px; height: 230px; display: grid; grid-template-areas: ". card-partner ." "card-opp1 . card-opp2" ". card-player ."; justify-items: center; align-items: center; background: rgba(0, 0, 0, 0.05); border-radius: 50%; box-shadow: inset 0 0 15px rgba(0,0,0,0.1); }
+
+.card-placeholder { width: 85px; height: 120px; border-radius: 8px; }
+#message-box { padding: 10px 25px; background-color: var(--primary-accent); color: var(--text-light); border-radius: 20px; font-weight: 700; font-size: 1.1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+#actions { position: fixed; bottom: 20px; right: 20px; display: flex; gap: 15px; }
+button { padding: 12px 30px; font-size: 1rem; font-family: var(--font-main); font-weight: 700; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s ease-in-out; background-color: var(--primary-accent); color: var(--text-light); text-transform: uppercase; }
+button:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+button:disabled { background-color: #aaa; color: #666; cursor: not-allowed; transform: none; box-shadow: none;}
+
+/* --- ESTILOS DAS CARTAS --- */
+.card { width: 85px; height: 120px; border-radius: 8px; background-color: #fff; color: var(--text-dark); box-shadow: 0 2px 3px rgba(0,0,0,0.1), 0 5px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 28px; font-weight: 700; transition: transform 0.3s ease; border: 1px solid #ccc; position: relative; }
+#player-area .card:hover { transform: translateY(-25px) scale(1.1); z-index: 10; cursor: pointer; }
+
+/* --- DESTAQUE INCONFUNDÍVEL PARA A MANILHA --- */
+.card.manilha {
+    border: 3px solid var(--primary-accent);
+    box-shadow: 0 5px 20px rgba(11, 102, 35, 0.5);
+}
+.card.manilha::after {
+    content: '★'; /* Ícone de Estrela */
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    color: #ffd700; /* Dourado */
+    font-size: 16px;
+    text-shadow: 0 0 5px black;
+}
+
+.card.red { color: var(--secondary-accent); }
+.card.black { color: var(--text-dark); }
+.card-icon { width: 45%; height: auto; }
+.card-icon svg { width: 100%; height: 100%; fill: currentColor; }
+.card.facedown { background: linear-gradient(135deg, #a84d44 0%, #7c3a33 100%); border-color: #612e28; }
+.player-area.vertical .card { width: 65px; height: 90px; font-size: 16px; }
