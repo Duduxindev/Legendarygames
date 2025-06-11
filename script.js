@@ -118,8 +118,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const indexManilha = (indexAtual + 1) % VALORES.length;
         valorManilha = VALORES[indexManilha];
         
+        console.log("Carta virada:", cartaVira.valor, cartaVira.naipe);
+        console.log("Valor da manilha:", valorManilha);
+        
         // Marca todas as cartas desse valor como manilhas
-        baralho.forEach(carta => {
+        for (let i = 0; i < baralho.length; i++) {
+            const carta = baralho[i];
             if (carta.valor === valorManilha) {
                 carta.manilha = true;
                 carta.forca = 11; // Todas as manilhas têm força 11 base
@@ -129,7 +133,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (carta.naipe === "♥️") carta.forca = 13;
                 else if (carta.naipe === "♣️") carta.forca = 14;
             }
-        });
+        }
+        
+        // Verificar cartas dos jogadores também (para corrigir o bug)
+        if (jogadores.length > 0) {
+            jogadores.forEach(jogador => {
+                jogador.mao.forEach(carta => {
+                    if (carta.valor === valorManilha) {
+                        carta.manilha = true;
+                        carta.forca = 11;
+                        if (carta.naipe === "♠️") carta.forca = 12;
+                        else if (carta.naipe === "♥️") carta.forca = 13;
+                        else if (carta.naipe === "♣️") carta.forca = 14;
+                    }
+                });
+            });
+        }
     }
 
     function renderizarCarta(carta, facedown = false) {
@@ -146,6 +165,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderizarVira() {
         if (!cartaVira) return '';
         
+        // Remover vira anterior, se existir
+        const viraAnterior = document.getElementById('carta-vira');
+        if (viraAnterior) viraAnterior.remove();
+        
+        const infoAnterior = document.getElementById('vira-info');
+        if (infoAnterior) infoAnterior.remove();
+        
+        // Criar novo elemento para a carta vira
         const viraEl = document.createElement('div');
         viraEl.id = 'carta-vira';
         viraEl.style.position = 'absolute';
@@ -164,6 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Adicionar texto para explicar a manilha
         const infoEl = document.createElement('div');
+        infoEl.id = 'vira-info';
         infoEl.style.position = 'absolute';
         infoEl.style.top = '50%';
         infoEl.style.left = '50%';
@@ -180,10 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderizarTudo() {
-        // Limpar qualquer vira existente
-        const viraExistente = document.getElementById('carta-vira');
-        if (viraExistente) viraExistente.remove();
-        
         // Renderizar cartas dos jogadores
         jogadores.forEach((jogador, i) => {
             const area = playerAreas[i];
@@ -225,16 +249,57 @@ document.addEventListener('DOMContentLoaded', () => {
         dealButton.addEventListener('click', iniciarNovaMao);
         trucoButton.addEventListener('click', pedirTruco);
         
-        // Adiciona botão para jogar carta virada
+        // Adicionar botões extras
         const actionsEl = document.getElementById('actions');
+        
+        // Botão para jogar carta virada
         const cartaViradaBtn = document.createElement('button');
         cartaViradaBtn.id = 'carta-virada-btn';
         cartaViradaBtn.textContent = "Modo: Carta Normal";
         cartaViradaBtn.addEventListener('click', toggleModoCartaVirada);
         actionsEl.appendChild(cartaViradaBtn);
         
+        // Botão para voltar ao menu
+        const voltarMenuBtn = document.createElement('button');
+        voltarMenuBtn.id = 'voltar-menu-btn';
+        voltarMenuBtn.textContent = "Voltar ao Menu";
+        voltarMenuBtn.style.backgroundColor = "#c0392b"; // Vermelho para destacar
+        voltarMenuBtn.addEventListener('click', voltarAoMenu);
+        actionsEl.appendChild(voltarMenuBtn);
+        
         // Adicionar botão de ajuda
         criarBotaoAjuda();
+    }
+    
+    function voltarAoMenu() {
+        // Perguntar se o jogador tem certeza
+        if (jogoEmAndamento && !confirm("Tem certeza que deseja sair do jogo? O progresso será perdido.")) {
+            return;
+        }
+        
+        // Limpar o estado do jogo
+        jogoEmAndamento = false;
+        
+        // Mostrar o menu e esconder a mesa
+        tableTopEl.classList.add('hidden');
+        mainMenuEl.classList.remove('hidden');
+        
+        // Limpar as cartas da mesa
+        playerAreas.forEach(area => {
+            area.handEl.innerHTML = '';
+            area.tableEl.innerHTML = '';
+        });
+        
+        // Remover a carta vira
+        const viraEl = document.getElementById('carta-vira');
+        if (viraEl) viraEl.remove();
+        
+        const infoEl = document.getElementById('vira-info');
+        if (infoEl) infoEl.remove();
+        
+        // Resetar o placar
+        placar = { team1: 0, team2: 0 };
+        atualizarPlacarUI();
     }
     
     function criarBotaoAjuda() {
@@ -528,7 +593,7 @@ document.addEventListener('DOMContentLoaded', () => {
         criarBaralho();
         embaralhar();
         
-        // Distribuir cartas aos jogadores
+        // Distribuir cartas aos jogadores primeiro
         jogadores = [
             { id: 0, nome: 'Você', time: 1, mao: baralho.splice(0, 3), tipo: 'humano' },
             { id: 1, nome: 'Oponente 1', time: 2, mao: baralho.splice(0, 3), tipo: 'cpu' },
@@ -536,8 +601,21 @@ document.addEventListener('DOMContentLoaded', () => {
             { id: 3, nome: 'Oponente 2', time: 2, mao: baralho.splice(0, 3), tipo: 'cpu' }
         ];
         
-        // Determinar a carta virada e as manilhas
+        // Determinar a carta virada e as manilhas DEPOIS de distribuir as cartas
         determinarManilha();
+
+        // Aplicar a manilha às cartas dos jogadores
+        jogadores.forEach(jogador => {
+            jogador.mao.forEach(carta => {
+                if (carta.valor === valorManilha) {
+                    carta.manilha = true;
+                    carta.forca = 11;
+                    if (carta.naipe === "♠️") carta.forca = 12;
+                    else if (carta.naipe === "♥️") carta.forca = 13;
+                    else if (carta.naipe === "♣️") carta.forca = 14;
+                }
+            });
+        });
 
         // Ajuste de dificuldade: distribuir melhores cartas baseado na dificuldade
         if (gameSettings.difficulty === 'easy') {
@@ -587,6 +665,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
+        
+        // Debug: Verificar manilhas
+        jogadores.forEach((jogador, idx) => {
+            console.log(`Cartas do jogador ${idx} (${jogador.nome}):`);
+            jogador.mao.forEach(carta => {
+                console.log(`${carta.valor}${carta.naipe} - Força: ${carta.forca}, Manilha: ${carta.manilha}`);
+            });
+        });
         
         primeiroAJogarNaRodada = jogadorDaVezIndex;
         renderizarTudo();
